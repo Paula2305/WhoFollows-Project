@@ -2,9 +2,9 @@
 import styles from "./page.module.css";
 
 const steps = [
-  { title: "Descarga tus datos", text: "Solicita tu archivo de información desde Instagram." },
-  { title: "Sube tu archivo", text: "Selecciona el ZIP exportado para comenzar el análisis." },
-  { title: "Descubre el resultado", text: "Consulta a quién sigues que no te sigue de vuelta." },
+  { title: "Descargá tus datos", text: "Solicita tu archivo de información desde Instagram." },
+  { title: "Subí tu archivo", text: "Selecciona el ZIP exportado para comenzar el análisis." },
+  { title: "Descubrí el resultado", text: "Consulta a quién sigues que no te sigue de vuelta." },
 ];
 
 export default function Home() {
@@ -15,11 +15,9 @@ export default function Home() {
           <span className={styles.icon} aria-hidden="true">↗</span>
           Who<span>Follows.</span>
         </Link>
-        <span className={styles.note}>Tu círculo, más claro.</span>
       </header>
       <section className={styles.hero} aria-labelledby="home-title">
-        <div className={styles.badge}><span aria-hidden="true">●</span> Dale claridad a tus conexiones</div>
-        <h1 id="home-title">Tú les sigues.<br /><span>¿Ellos a ti?</span></h1>
+        <h1 id="home-title">Vos los seguís.<br /><span>¿Ellos a vos?</span></h1>
         <p className={styles.description}>Descubre quién no te sigue de vuelta en Instagram. Sube tu archivo y conoce cómo se conecta tu círculo.</p>
         <div className={styles.actions}>
           <Link href="/analizar" className={styles.primary}>Analizar archivo <span aria-hidden="true">↗</span></Link>

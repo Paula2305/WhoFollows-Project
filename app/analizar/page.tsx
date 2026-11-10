@@ -1,10 +1,11 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { extractFromInput, ImportError } from "@/lib/import";
 import { mergeFollowers, parseFollowers, parseFollowing, parseFollowingLinks, ParseError } from "@/lib/analyzer/parse";
 import { findNonFollowers } from "@/lib/analyzer/diff";
+import { classifyProfiles } from "@/lib/analyzer/profiles";
 import type { AnalysisResult } from "@/lib/analyzer/types";
 import home from "../page.module.css";
 import styles from "./page.module.css";
@@ -51,7 +52,6 @@ export default function AnalizarPage() {
         <Link href="/" className={styles.back}>← Volver al inicio</Link>
       </header>
       <div className={styles.content}>
-        <div className={home.badge}>Tu círculo, más claro</div>
         <h1 className={styles.title}>Descubre quién <span>no te sigue.</span></h1>
         <p className={styles.intro}>Sube tu exportación de Instagram y encuentra las conexiones que no son mutuas. Sin iniciar sesión, sin compartir tu contraseña.</p>
         <div
@@ -64,7 +64,6 @@ export default function AnalizarPage() {
           <span className={styles.uploadIcon} aria-hidden="true">↑</span>
           <h2>Tu archivo. Tus conexiones.</h2>
           <p>Arrastra aquí el ZIP de Instagram o la carpeta descomprimida.</p>
-          <p className={styles.fileHint}>También puedes cargar <code>followers_*.json</code> y <code>following.json</code>.</p>
           <button type="button" className={home.primary} disabled={status.kind === "running"} onClick={() => inputRef.current?.click()}>
             {status.kind === "running" ? "Analizando…" : "Elegir archivos"} <span aria-hidden="true">↗</span>
           </button>
@@ -89,17 +88,24 @@ export default function AnalizarPage() {
 function Results({ result, links, onReset }: { result: AnalysisResult; links: Map<string, string>; onReset: () => void }) {
   const { notFollowingBack, followersCount, followingCount } = result;
   const [copyMessage, setCopyMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<"regular" | "deleted">("regular");
+  const { regular, possiblyDeleted } = useMemo(() => classifyProfiles(notFollowingBack), [notFollowingBack]);
+  const visibleUsers = activeTab === "regular" ? regular : possiblyDeleted;
+  const tabs = [
+    { id: "regular", label: "Cuentas válidas", count: regular.length },
+    { id: "deleted", label: "Posiblemente eliminadas", count: possiblyDeleted.length },
+  ] as const;
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(notFollowingBack.join("\n"));
+      await navigator.clipboard.writeText(visibleUsers.join("\n"));
       setCopyMessage("Listado copiado.");
     } catch {
       setCopyMessage("No se pudo copiar. Puedes descargar el listado en TXT.");
     }
   };
-  const downloadTxt = () => download(`${notFollowingBack.join("\n")}\n`, "whofollows.txt", "text/plain");
+  const downloadTxt = () => download(`${visibleUsers.join("\n")}\n`, "whofollows.txt", "text/plain");
   const downloadCsv = () => {
-    const csv = `username\n${notFollowingBack.map((u) => `"${u.replace(/"/g, '""')}"`).join("\n")}\n`;
+    const csv = `username\n${visibleUsers.map((u) => `"${u.replace(/"/g, '""')}"`).join("\n")}\n`;
     download(csv, "whofollows.csv", "text/csv");
   };
 
@@ -114,15 +120,37 @@ function Results({ result, links, onReset }: { result: AnalysisResult; links: Ma
       <div className={styles.toolbar}>
         <h3>Tu listado</h3>
         <div className={styles.tools}>
-          <button type="button" onClick={copy} disabled={!notFollowingBack.length}>Copiar</button>
-          <button type="button" onClick={downloadTxt} disabled={!notFollowingBack.length}>Descargar TXT</button>
-          <button type="button" onClick={downloadCsv} disabled={!notFollowingBack.length}>Descargar CSV</button>
+          <button type="button" onClick={copy} disabled={!visibleUsers.length}>Copiar</button>
+          <button type="button" onClick={downloadCsv} disabled={!visibleUsers.length}>Descargar CSV</button>
         </div>
       </div>
+      <div className={styles.tabs} role="tablist" aria-label="Categorías de cuentas">
+        {tabs.map((tab, index) => (
+          <button key={tab.id} type="button" role="tab" id={`tab-${tab.id}`} aria-selected={activeTab === tab.id} aria-controls={`panel-${tab.id}`} tabIndex={activeTab === tab.id ? 0 : -1}
+            className={styles.tab}
+            onClick={() => { setActiveTab(tab.id); setCopyMessage(""); }}
+            onKeyDown={(event) => {
+              let nextIndex: number;
+              if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+              else if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+              else if (event.key === "Home") nextIndex = 0;
+              else if (event.key === "End") nextIndex = tabs.length - 1;
+              else return;
+              event.preventDefault();
+              setActiveTab(tabs[nextIndex].id);
+              setCopyMessage("");
+              document.getElementById(`tab-${tabs[nextIndex].id}`)?.focus();
+            }}>
+            {tab.label} <span className={styles.tabCount}>{tab.count}</span>
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id={`panel-${activeTab}`} aria-labelledby={`tab-${activeTab}`} tabIndex={0} className={styles.panel}>
+      <p className={styles.listSummary} role="status">Mostrando {visibleUsers.length} de {notFollowingBack.length} cuentas. Copiar y descargar incluyen solo esta pestaña.</p>
       <p role="status" className={styles.copyMessage}>{copyMessage}</p>
-      {notFollowingBack.length === 0 ? <p className={styles.empty}>¡Todos los que sigues te siguen de vuelta!</p> : (
+      {visibleUsers.length === 0 ? <p className={styles.empty}>{notFollowingBack.length === 0 ? "¡Todos los que sigues te siguen de vuelta!" : activeTab === "deleted" ? "No hay cuentas posiblemente eliminadas en este listado." : "No hay cuentas en esta categoría. Puedes consultar la pestaña Posiblemente eliminadas."}</p> : (
         <ul className={styles.list} aria-label="Usuarios que no te siguen de vuelta">
-          {notFollowingBack.map((user) => {
+          {visibleUsers.map((user) => {
             const href = links.get(user);
             return (
               <li key={user}>
@@ -133,6 +161,7 @@ function Results({ result, links, onReset }: { result: AnalysisResult; links: Ma
           })}
         </ul>
       )}
+      </div>
     </section>
   );
 }

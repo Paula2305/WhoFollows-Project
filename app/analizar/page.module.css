@@ -36,6 +36,13 @@
 .content button:focus-visible { outline: 3px solid #eeaeff; outline-offset: 4px; }
 .copyMessage { font-size: 12px; color: #d4b1ff; line-height: 1.7; }
 .copyMessage:not(:empty) { margin-top: 12px; }
+.tabs { display: flex; gap: 6px; margin-top: 22px; padding: 6px; border: 1px solid #b98de62d; border-radius: 15px; background: #bd8cff06; }
+.tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 13px 10px; border: 1px solid transparent; border-radius: 10px; font-size: 13px; color: #b8abc9; }
+.tab:hover { color: #f0d7ff; background: #c397ff0d; }
+.tab[aria-selected="true"] { color: #f4e7ff; background: linear-gradient(110deg, #bb8bff24, #e1a0ff12); border-color: #c48eff60; box-shadow: 0 0 18px #bb68ff14; }
+.tabCount { padding: 2px 7px; border-radius: 7px; background: #c397ff16; color: #dec1ff; font-size: 11px; }
+.panel:focus-visible { outline: 2px solid #eeaeff; outline-offset: 4px; border-radius: 12px; }
+.listSummary { color: #b8abc9; font-size: 12px; line-height: 1.8; margin-top: 10px; }
 .list { margin-top: 16px; list-style: none; padding: 0; max-height: 480px; overflow-y: auto; border: 1px solid #b98de62d; border-radius: 16px; background: #bd8cff04; scrollbar-color: #79549c #171023; }
 .list li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; }
 .list li + li { border-top: 1px solid #d5b0ff14; }
@@ -54,5 +61,6 @@
   .stats span { font-size: 11px; }
   .list li { padding: 12px; gap: 10px; }
   .profileLink { padding: 9px; font-size: 11px; gap: 5px; }
+  .tab { flex-direction: column; gap: 5px; padding: 10px 6px; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .dropzone { transition: none; } }
