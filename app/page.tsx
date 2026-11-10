@@ -1,21 +1,46 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import styles from "./page.module.css";
+
+const steps = [
+  { title: "Descarga tus datos", text: "Solicita tu archivo de información desde Instagram." },
+  { title: "Sube tu archivo", text: "Selecciona el ZIP exportado para comenzar el análisis." },
+  { title: "Descubre el resultado", text: "Consulta a quién sigues que no te sigue de vuelta." },
+];
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-      <h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-        Descubre quién no te sigue de vuelta en Instagram
-      </h1>
-      <p className="mt-6 max-w-xl text-lg text-zinc-600 dark:text-zinc-400">
-        Sube el ZIP que te da Instagram y te decimos a quién sigues que no te
-        sigue. Tus datos nunca salen de tu navegador.
-      </p>
-      <Link
-        href="/analizar"
-        className="mt-10 inline-flex h-12 items-center rounded-full bg-zinc-900 px-6 text-base font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-      >
-        Analizar mi export
-      </Link>
+    <main className={styles.home}>
+      <header className={styles.header}>
+        <Link href="/" className={styles.brand} aria-label="WhoFollows, inicio">
+          <span className={styles.icon} aria-hidden="true">↗</span>
+          Who<span>Follows.</span>
+        </Link>
+        <span className={styles.note}>Tu círculo, más claro.</span>
+      </header>
+      <section className={styles.hero} aria-labelledby="home-title">
+        <div className={styles.badge}><span aria-hidden="true">●</span> Dale claridad a tus conexiones</div>
+        <h1 id="home-title">Tú les sigues.<br /><span>¿Ellos a ti?</span></h1>
+        <p className={styles.description}>Descubre quién no te sigue de vuelta en Instagram. Sube tu archivo y conoce cómo se conecta tu círculo.</p>
+        <div className={styles.actions}>
+          <Link href="/analizar" className={styles.primary}>Analizar archivo <span aria-hidden="true">↗</span></Link>
+          <Link href="/tutorial" className={styles.secondary}><span aria-hidden="true">▷</span> Ver tutorial</Link>
+        </div>
+        <p className={styles.privacy}>Sin contraseñas. Tus archivos se procesan en tu navegador.</p>
+      </section>
+      <section className={styles.guide} aria-labelledby="steps-title">
+        <h2 id="steps-title">De la duda a la respuesta.</h2>
+        <p className={styles.subtitle}>Solo necesitas tu archivo de Instagram.</p>
+        <ol className={styles.steps}>
+          {steps.map((step, index) => (
+            <li key={step.title} className={styles.card}>
+              <span className={styles.number}>0{index + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <footer className={styles.footer}>Un poco menos de misterio. Un poco más de claridad.</footer>
     </main>
   );
 }

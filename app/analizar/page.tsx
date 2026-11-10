@@ -1,250 +1,136 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
-import {
-  extractFromInput,
-  ImportError,
-} from "@/lib/import";
-import { mergeFollowers, parseFollowers, parseFollowing, ParseError } from "@/lib/analyzer/parse";
+import { extractFromInput, ImportError } from "@/lib/import";
+import { mergeFollowers, parseFollowers, parseFollowing, parseFollowingLinks, ParseError } from "@/lib/analyzer/parse";
 import { findNonFollowers } from "@/lib/analyzer/diff";
 import type { AnalysisResult } from "@/lib/analyzer/types";
+import home from "../page.module.css";
+import styles from "./page.module.css";
 
 type Status =
   | { kind: "idle" }
   | { kind: "running" }
-  | { kind: "done"; result: AnalysisResult }
+  | { kind: "done"; result: AnalysisResult; links: Map<string, string> }
   | { kind: "error"; message: string };
 
 export default function AnalizarPage() {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [dragOver, setDragOver] = useState(false);
-  const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const busy = useRef(false);
 
-  const run = useCallback(
-    async (input: File | ReadonlyArray<File> | DataTransfer) => {
-      setStatus({ kind: "running" });
-      setCopied(false);
-      try {
-        const { followersChunks, following } = await extractFromInput(input);
-        const followersSet = mergeFollowers(
-          followersChunks.map(parseFollowers),
-        );
-        const followingSet = parseFollowing(following);
-        const result = findNonFollowers(followingSet, followersSet);
-        setStatus({ kind: "done", result });
-      } catch (err) {
-        setStatus({ kind: "error", message: humanError(err) });
-      }
-    },
-    [],
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setDragOver(false);
-      void run(e.dataTransfer);
-    },
-    [run],
-  );
-
-  const onPick = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const list = e.target.files;
-      if (!list || list.length === 0) return;
-      void run(Array.from(list));
-    },
-    [run],
-  );
+  const run = useCallback(async (input: File | ReadonlyArray<File> | DataTransfer) => {
+    if (busy.current) return;
+    busy.current = true;
+    setStatus({ kind: "running" });
+    try {
+      const { followersChunks, following } = await extractFromInput(input);
+      const followersSet = mergeFollowers(followersChunks.map(parseFollowers));
+      const followingSet = parseFollowing(following);
+      setStatus({ kind: "done", result: findNonFollowers(followingSet, followersSet), links: parseFollowingLinks(following) });
+    } catch (err) {
+      setStatus({ kind: "error", message: humanError(err) });
+    } finally {
+      busy.current = false;
+    }
+  }, []);
 
   const reset = () => {
     setStatus({ kind: "idle" });
-    setCopied(false);
     if (inputRef.current) inputRef.current.value = "";
   };
 
   return (
-    <main className="flex flex-1 flex-col items-center px-6 py-12">
-      <div className="w-full max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          ¿Quién no te sigue de vuelta?
-        </h1>
-        <p className="mt-3 text-zinc-600 dark:text-zinc-400">
-          Sube tu export de Instagram (ZIP o carpeta) y te decimos a quién
-          sigues que no te sigue. Todo se procesa en tu navegador: tus archivos
-          nunca se suben a ningún servidor.
-        </p>
-
+    <main className={home.home}>
+      <header className={home.header}>
+        <Link href="/" className={home.brand} aria-label="WhoFollows, inicio">
+          <span className={home.icon} aria-hidden="true">↗</span>Who<span>Follows.</span>
+        </Link>
+        <Link href="/" className={styles.back}>← Volver al inicio</Link>
+      </header>
+      <div className={styles.content}>
+        <div className={home.badge}>Tu círculo, más claro</div>
+        <h1 className={styles.title}>Descubre quién <span>no te sigue.</span></h1>
+        <p className={styles.intro}>Sube tu exportación de Instagram y encuentra las conexiones que no son mutuas. Sin iniciar sesión, sin compartir tu contraseña.</p>
         <div
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
+          className={`${styles.dropzone} ${dragOver ? styles.dragOver : ""}`}
+          onDragOver={(e) => { e.preventDefault(); if (!busy.current) setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-          className={`mt-8 rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
-            dragOver
-              ? "border-zinc-900 bg-zinc-100 dark:border-zinc-100 dark:bg-zinc-900"
-              : "border-zinc-300 dark:border-zinc-700"
-          }`}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); void run(e.dataTransfer); }}
+          aria-busy={status.kind === "running"}
         >
-          <p className="text-base font-medium">
-            Arrastra aquí el ZIP de Instagram o la carpeta descomprimida
-          </p>
-          <p className="mt-1 text-sm text-zinc-500">
-            También vale soltar directamente los archivos{" "}
-            <code className="font-mono">followers_*.json</code> y{" "}
-            <code className="font-mono">following.json</code>
-          </p>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="mt-6 inline-flex h-10 items-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-          >
-            O elegir archivos
+          <span className={styles.uploadIcon} aria-hidden="true">↑</span>
+          <h2>Tu archivo. Tus conexiones.</h2>
+          <p>Arrastra aquí el ZIP de Instagram o la carpeta descomprimida.</p>
+          <p className={styles.fileHint}>También puedes cargar <code>followers_*.json</code> y <code>following.json</code>.</p>
+          <button type="button" className={home.primary} disabled={status.kind === "running"} onClick={() => inputRef.current?.click()}>
+            {status.kind === "running" ? "Analizando…" : "Elegir archivos"} <span aria-hidden="true">↗</span>
           </button>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept=".zip,.json,application/zip,application/json"
-            onChange={onPick}
-            className="hidden"
-          />
+          <input ref={inputRef} type="file" multiple accept=".zip,.json,application/zip,application/json" aria-label="Seleccionar exportación de Instagram" className="hidden"
+            onChange={(e) => { const files = e.target.files; if (files?.length) void run(Array.from(files)); e.target.value = ""; }} />
         </div>
-
-        {status.kind === "running" && (
-          <p className="mt-6 text-sm text-zinc-500">Analizando…</p>
-        )}
-
+        <p className={styles.privacy}>◇ Todo se procesa en tu navegador. Tus archivos nunca se suben a un servidor.</p>
+        <div role="status" aria-live="polite">{status.kind === "running" && <p className={styles.message}>Analizando tus conexiones…</p>}</div>
         {status.kind === "error" && (
-          <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-            <p className="font-medium">No pude leer el export</p>
-            <p className="mt-1">{status.message}</p>
-            <button
-              type="button"
-              onClick={reset}
-              className="mt-3 text-sm underline"
-            >
-              Intentar de nuevo
-            </button>
+          <div className={styles.error} role="alert">
+            <h2>No se pudo leer la exportación</h2><p>{status.message}</p>
+            <button type="button" onClick={reset} className={styles.textButton}>Intentar de nuevo ↗</button>
           </div>
         )}
-
-        {status.kind === "done" && (
-          <Results result={status.result} onReset={reset} copied={copied} setCopied={setCopied} />
-        )}
+        {status.kind === "done" && <Results result={status.result} links={status.links} onReset={reset} />}
       </div>
+      <footer className={home.footer}>Un poco menos de misterio. Un poco más de claridad.</footer>
     </main>
   );
 }
 
-function Results({
-  result,
-  onReset,
-  copied,
-  setCopied,
-}: {
-  result: AnalysisResult;
-  onReset: () => void;
-  copied: boolean;
-  setCopied: (v: boolean) => void;
-}) {
+function Results({ result, links, onReset }: { result: AnalysisResult; links: Map<string, string>; onReset: () => void }) {
   const { notFollowingBack, followersCount, followingCount } = result;
-
+  const [copyMessage, setCopyMessage] = useState("");
   const copy = async () => {
-    await navigator.clipboard.writeText(notFollowingBack.join("\n"));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(notFollowingBack.join("\n"));
+      setCopyMessage("Listado copiado.");
+    } catch {
+      setCopyMessage("No se pudo copiar. Puedes descargar el listado en TXT.");
+    }
   };
-
-  const downloadTxt = () => {
-    download(
-      `${notFollowingBack.join("\n")}\n`,
-      "whofollows.txt",
-      "text/plain",
-    );
-  };
-
+  const downloadTxt = () => download(`${notFollowingBack.join("\n")}\n`, "whofollows.txt", "text/plain");
   const downloadCsv = () => {
-    const csv = `username\n${notFollowingBack
-      .map((u) => `"${u.replace(/"/g, '""')}"`)
-      .join("\n")}\n`;
+    const csv = `username\n${notFollowingBack.map((u) => `"${u.replace(/"/g, '""')}"`).join("\n")}\n`;
     download(csv, "whofollows.csv", "text/csv");
   };
 
   return (
-    <section className="mt-8">
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <h2 className="text-2xl font-semibold">
-          {notFollowingBack.length}{" "}
-          <span className="text-zinc-500 font-normal">
-            {notFollowingBack.length === 1
-              ? "no te sigue"
-              : "no te siguen"}
-          </span>
-        </h2>
-        <p className="text-sm text-zinc-500">
-          Sigues a {followingCount} · Te siguen {followersCount}
-        </p>
+    <section className={styles.results} aria-labelledby="results-title">
+      <div className={styles.resultHeading}><div><p className={styles.eyebrow}>ANÁLISIS COMPLETADO</p><h2 id="results-title">Así se conecta tu círculo.</h2></div><button type="button" onClick={onReset} className={styles.textButton}>Analizar otro ↗</button></div>
+      <div className={styles.stats}>
+        <div><strong>{notFollowingBack.length}</strong><span>No te siguen de vuelta</span></div>
+        <div><strong>{followingCount}</strong><span>Personas que sigues</span></div>
+        <div><strong>{followersCount}</strong><span>Personas que te siguen</span></div>
       </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={copy}
-          disabled={notFollowingBack.length === 0}
-          className="h-9 rounded-full bg-zinc-900 px-4 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-        >
-          {copied ? "Copiado ✓" : "Copiar"}
-        </button>
-        <button
-          type="button"
-          onClick={downloadTxt}
-          disabled={notFollowingBack.length === 0}
-          className="h-9 rounded-full border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
-        >
-          Descargar TXT
-        </button>
-        <button
-          type="button"
-          onClick={downloadCsv}
-          disabled={notFollowingBack.length === 0}
-          className="h-9 rounded-full border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
-        >
-          Descargar CSV
-        </button>
-        <button
-          type="button"
-          onClick={onReset}
-          className="h-9 rounded-full px-4 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-        >
-          Analizar otro
-        </button>
+      <div className={styles.toolbar}>
+        <h3>Tu listado</h3>
+        <div className={styles.tools}>
+          <button type="button" onClick={copy} disabled={!notFollowingBack.length}>Copiar</button>
+          <button type="button" onClick={downloadTxt} disabled={!notFollowingBack.length}>Descargar TXT</button>
+          <button type="button" onClick={downloadCsv} disabled={!notFollowingBack.length}>Descargar CSV</button>
+        </div>
       </div>
-
-      {notFollowingBack.length === 0 ? (
-        <p className="mt-6 text-zinc-500">
-          Todos los que sigues te siguen de vuelta.
-        </p>
-      ) : (
-        <ul className="mt-6 max-h-[480px] overflow-y-auto rounded-lg border border-zinc-200 divide-y divide-zinc-200 dark:border-zinc-800 dark:divide-zinc-800">
-          {notFollowingBack.map((user) => (
-            <li
-              key={user}
-              className="px-4 py-2 font-mono text-sm"
-            >
-              <a
-                href={`https://instagram.com/${encodeURIComponent(user)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                @{user}
-              </a>
-            </li>
-          ))}
+      <p role="status" className={styles.copyMessage}>{copyMessage}</p>
+      {notFollowingBack.length === 0 ? <p className={styles.empty}>¡Todos los que sigues te siguen de vuelta!</p> : (
+        <ul className={styles.list} aria-label="Usuarios que no te siguen de vuelta">
+          {notFollowingBack.map((user) => {
+            const href = links.get(user);
+            return (
+              <li key={user}>
+                <span className={styles.username}>@{user}</span>
+                {href ? <a href={href} target="_blank" rel="noopener noreferrer" className={styles.profileLink} aria-label={`Ver perfil de @${user} (se abre en otra pestaña)`}>Ver perfil <span aria-hidden="true">↗</span></a> : <span className={styles.unavailable}>Sin enlace</span>}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -266,19 +152,13 @@ function download(content: string, filename: string, mime: string): void {
 function humanError(err: unknown): string {
   if (err instanceof ImportError) {
     switch (err.code) {
-      case "no-followers":
-        return "No encontré ningún archivo followers_*.json. Asegúrate de subir el export completo de Instagram.";
-      case "no-following":
-        return "No encontré following.json. Asegúrate de subir el export completo de Instagram.";
-      case "invalid-json":
-        return err.message;
-      case "empty-input":
-        return "No se recibió ningún archivo.";
+      case "no-followers": return "No encontré ningún archivo followers_*.json. Asegúrate de subir la exportación completa de Instagram.";
+      case "no-following": return "No encontré following.json. Asegúrate de subir la exportación completa de Instagram.";
+      case "invalid-json": return err.message;
+      case "empty-input": return "No se recibió ningún archivo.";
     }
   }
-  if (err instanceof ParseError) {
-    return `El archivo no tiene el formato esperado: ${err.message}`;
-  }
+  if (err instanceof ParseError) return `El archivo no tiene el formato esperado: ${err.message}`;
   if (err instanceof Error) return err.message;
   return "Error desconocido.";
 }

@@ -1,0 +1,54 @@
+﻿.home {
+  min-height: 100svh;
+  flex: 1;
+  color: #f7f2ff;
+  background: radial-gradient(ellipse at 50% 26%, #7535c72b, transparent 52%), radial-gradient(ellipse at 95% 65%, #da48ff0d, transparent 42%), #100b1c;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  padding: 0 28px;
+}
+.header { max-width: 1120px; margin: auto; min-height: 98px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 1px solid #d5b0ff14; }
+.brand { display: inline-flex; align-items: center; font-size: 21px; font-weight: 750; letter-spacing: -1px; }
+.brand > span { color: #c9a2ff; }
+.icon { display: grid; place-items: center; width: 34px; height: 34px; margin-right: 10px; border: 1px solid #b479ff70; border-radius: 11px; background: #b479ff14; font-size: 25px; }
+.note { font-size: 12px; color: #a99abf; }
+.hero { max-width: 860px; margin: auto; padding: 78px 0 62px; text-align: center; }
+.badge { display: inline-flex; align-items: center; gap: 9px; padding: 8px 15px; border: 1px solid #ba85fa3b; border-radius: 100px; color: #d3b5f7; background: #c49aff09; font-size: 12px; }
+.badge > span { color: #d39aff; font-size: 10px; text-shadow: 0 0 12px #c976ff; }
+.hero h1 { margin: 25px 0 22px; font-size: clamp(48px, 7.5vw, 86px); line-height: 1.08; letter-spacing: -0.065em; font-weight: 750; }
+.hero h1 > span { color: #d4a4ff; background: linear-gradient(100deg, #b792ff 12%, #d295ff 50%, #f18fe4); background-clip: text; -webkit-text-fill-color: transparent; }
+.description { max-width: 470px; margin: auto; font-size: 17px; line-height: 1.8; color: #b8abc9; text-wrap: pretty; }
+.actions { display: flex; justify-content: center; gap: 14px; margin-top: 31px; }
+.primary, .secondary { display: inline-flex; align-items: center; justify-content: center; gap: 22px; min-height: 52px; padding: 0 25px; border-radius: 13px; font-size: 14px; font-weight: 600; transition: background 160ms, box-shadow 160ms, transform 160ms; }
+.primary { background: linear-gradient(110deg, #bb8bff, #e1a0ff); color: #211033; box-shadow: 0 0 30px #bb68ff30, inset 0 1px 0 #ffffff55; }
+.primary > span { font-size: 21px; }
+.secondary { border: 1px solid #b08bd244; background: #c397ff08; color: #e3d5f6; gap: 10px; }
+.primary:hover { box-shadow: 0 0 38px #bb68ff60; transform: translateY(-2px); }
+.secondary:hover { background: #c397ff18; transform: translateY(-2px); }
+.home a:focus-visible { outline: 3px solid #eeaeff; outline-offset: 6px; }
+.privacy { margin-top: 21px; font-size: 11px; color: #a99abf; }
+.guide { max-width: 1000px; margin: auto; padding: 10px 0 48px; }
+.guide h2 { text-align: center; font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+.subtitle { text-align: center; margin: 7px 0 25px; font-size: 13px; color: #a99abf; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; list-style: none; padding: 0; }
+.card { padding: 25px; border: 1px solid #b98de628; border-radius: 18px; background: linear-gradient(140deg, #bd8cff0c, #bd8cff03); }
+.number { display: inline-block; color: #c499fa; font-size: 12px; letter-spacing: 2px; margin-bottom: 20px; }
+.card h3 { font-size: 15px; font-weight: 600; margin-bottom: 9px; }
+.card p { font-size: 13px; line-height: 1.7; color: #a99abf; max-width: 240px; }
+.footer { max-width: 1120px; margin: auto; padding: 23px 0; border-top: 1px solid #d5b0ff14; text-align: center; color: #9c8cb3; font-size: 11px; }
+@media (max-width: 600px) {
+  .home { padding: 0 20px; }
+  .header { min-height: 78px; }
+  .note { display: none; }
+  .hero { padding: 56px 0 46px; }
+  .description { font-size: 15px; }
+  .actions { flex-direction: column; max-width: 330px; margin-inline: auto; }
+  .privacy { max-width: 280px; margin-inline: auto; line-height: 1.7; }
+  .steps { grid-template-columns: 1fr; }
+  .card { padding: 22px; }
+  .number { margin-bottom: 12px; }
+  .card p { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .primary, .secondary { transition: none; }
+  .primary:hover, .secondary:hover { transform: none; }
+}

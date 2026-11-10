@@ -47,3 +47,30 @@ export function mergeFollowers(parts: ReadonlyArray<Set<string>>): Set<string> {
   }
   return merged;
 }
+
+/** Preserve the exported profile URL, including URLs for deleted accounts. */
+export function parseFollowingLinks(data: unknown): Map<string, string> {
+  const list = (data as FollowingJson | null)?.relationships_following;
+  if (!Array.isArray(list)) {
+    throw new ParseError("following JSON must contain a relationships_following array (following.json)");
+  }
+  const links = new Map<string, string>();
+  for (const entry of list) {
+    if (typeof entry?.title !== "string" || !entry.title || !Array.isArray(entry.string_list_data)) continue;
+    for (const item of entry.string_list_data) {
+      if (typeof item?.href !== "string") continue;
+      try {
+        const url = new URL(item.href);
+        if (url.protocol === "https:" &&
+          (url.hostname === "instagram.com" || url.hostname === "www.instagram.com") &&
+          !url.username && !url.password) {
+          links.set(entry.title.toLowerCase(), item.href);
+          break;
+        }
+      } catch {
+        // An invalid exported URL should not prevent analysis of the account.
+      }
+    }
+  }
+  return links;
+}

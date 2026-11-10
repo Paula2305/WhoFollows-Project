@@ -3,7 +3,10 @@ export type FollowersJson = ReadonlyArray<{
 }>;
 
 export type FollowingJson = {
-  relationships_following: ReadonlyArray<{ title: string }>;
+  relationships_following: ReadonlyArray<{
+    title: string;
+    string_list_data?: ReadonlyArray<{ href?: string }>;
+  }>;
 };
 
 export type AnalysisResult = {
